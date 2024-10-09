@@ -1,4 +1,4 @@
-# GTX
+# Serializable GTX
 
 ## Description
 This is GTX, a main memory graph system that manages and queries dynamic graphs. GTX supports serializable concurrent read-write and read-only transactions using read set validation. GTX supports graph analytics using its OpenMP-tailored read-only transactions and transaction adjacency list scan protocol. It has been evaluated against state-of-the-art transactional graphy systems using [GFE_Driver](https://github.com/Jiboxiake/gfe_driver_gtx). Currently we only show the anonymized version but we aim to publish the final experiment framework with full dataset when the paper decision is finalized.
@@ -66,6 +66,9 @@ This class is used by OpenMP worker thread to implement graph analytics.
 - void put_vertex(vertex_t vertex_id, std::string_view data)
 - bool checked_put_edge(vertex_t src, label_t label, vertex_t dst, std::string_view edge_data)
 - bool checked_delete_edge(vertex_t src, label_t label, vertex_t dst)
+
+#### DeleteTransaction
+- void delete_vertex(vertex_t vid)
 
 #### SimpleEdgeDeltaIterator
 - bool valid()

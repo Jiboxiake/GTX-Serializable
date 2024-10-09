@@ -18,6 +18,7 @@ namespace  GTX{
     class RWTransaction;
     class ROTransaction;
     class SharedROTransaction;
+    class DeleteTransaction;
     class EdgeDeltaIterator;
     class BaseEdgeDelta;
     class SimpleEdgeDeltaIterator;
@@ -176,6 +177,14 @@ namespace gt {
         bool checked_delete_edge(vertex_t src, label_t label, vertex_t dst);
     private:
         const std::unique_ptr<GTX::RWTransaction> txn;
+    };
+    class DeleteTransaction{
+    public:
+        DeleteTransaction(std::unique_ptr<GTX::DeleteTransaction> _txn);
+        ~DeleteTransaction();
+        void delete_vertex();
+    private:
+        const std::unique_ptr<GTX::DeleteTransaction> txn;
     };
     class EdgeDeltaIterator{
     public:
