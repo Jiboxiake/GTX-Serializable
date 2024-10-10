@@ -1,7 +1,7 @@
 # Serializable GTX
 
 ## Description
-This is GTX, a main memory graph system that manages and queries dynamic graphs. GTX supports serializable concurrent read-write and read-only ACID transactions using read set validation. GTX supports graph analytics using its OpenMP-tailored read-only transactions and transaction adjacency list scan protocol. It has been evaluated against state-of-the-art transactional graphy systems using [GFE_Driver](https://anonymous.4open.science/r/gfe_driver_sigmod2025-1387/README.md). Currently we only show the anonymized version but we aim to publish the final experiment framework with full dataset when the paper decision is finalized.
+This is GTX, a main memory graph system that manages and queries dynamic graphs. GTX supports serializable concurrent read-write and read-only ACID transactions using read set validation. GTX supports graph analytics using its OpenMP-tailored read-only transactions and transaction adjacency list scan protocol. It has been evaluated against state-of-the-art transactional graphy systems using [GFE_Driver](https://anonymous.4open.science/r/gfe_driver_sigmod2025-1387/README.md). Currently we only show the anonymized version but we aim to publish the final experiment framework with full dataset when the paper decision is finalized. 
 ## Build
 ### Prerequisites 
 - We only tested it on Linux.
@@ -20,6 +20,7 @@ This is GTX, a main memory graph system that manages and queries dynamic graphs.
 - include library GTX in your project's CMakeLists.txt. 
 - copy bind/GTX.hpp into your project. 
 - include GTX.hpp to use GTX
+- optional: set a checkpoint and redo logging path, and run the [Checkpoint_Manager](https://anonymous.4open.science/r/GTX_Checkpoint_Merger-608E/README.md) to truncate and merge the logs and fuzzy incremental checkpoints.
 ### API
 The full GTX APIs can be found in /bind/GTX.hpp.
 Here we list the core APIs to manage and query a dynamic graph using GTX
