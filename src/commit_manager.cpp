@@ -84,13 +84,14 @@ namespace GTX{
         std::random_device rd; // obtain a random number from hardware
         std::mt19937 gen(rd());
         while(running.load(std::memory_order_acquire)){
+            determine_validation_group();//determine the validation block, and wait till they all validate
             size_t commit_count =0;
             offset = offset_distribution(gen);
             uint32_t current_offset = offset;
             global_write_epoch++;
             do{
                 auto current_txn_entry = commit_array[current_offset].txn_ptr.load(std::memory_order_acquire);
-                if(current_txn_entry){
+                if(current_txn_entry&&current_txn_entry->validating.load()){
                     //Libin shifted their orders
                     commit_array[current_offset].txn_ptr.store(nullptr,std::memory_order_release);
                     current_txn_entry->status.store(global_write_epoch,std::memory_order_release);
@@ -106,10 +107,11 @@ namespace GTX{
             }
         }
         //now the stop running signal is sent
+        //todo: this also needs validation
         global_write_epoch++;
         for(uint32_t i=0; i<current_writer_num;i++){
             auto current_txn_entry = commit_array[i].txn_ptr.load(std::memory_order_acquire);
-            if(current_txn_entry){
+            if(current_txn_entry&&current_txn_entry->validating.load()){
                 current_txn_entry->status.store(global_write_epoch);
                 commit_array[i].txn_ptr.store(nullptr);
             }
@@ -126,6 +128,7 @@ namespace GTX{
         std::mt19937 gen(rd());
         uint32_t group_log_counter = 0;
         while(running.load(std::memory_order_acquire)){
+            determine_validation_group();//determine the validation block, and wait till they all validate
             size_t commit_count =0;
             offset = offset_distribution(gen);
             uint32_t current_offset = offset;
@@ -138,7 +141,8 @@ namespace GTX{
             //let's just save that we don't do extra log, we do not increase read ts until logs are persisted.
             do{
                 auto current_txn_entry = commit_array[current_offset].txn_ptr.load(std::memory_order_acquire);
-                if(current_txn_entry){
+                //only commit validated transactions
+                if(current_txn_entry&&current_txn_entry->validating.load()){
                     group_log.append(current_txn_entry->get_wal());
                     current_txn_entry->clear_wal();
                     //Libin shifted their orders
@@ -234,7 +238,7 @@ namespace GTX{
             //let's just save that we don't do extra log, we do not increase read ts until logs are persisted.
             do{
                 auto current_txn_entry = commit_array[current_offset].txn_ptr.load(std::memory_order_acquire);
-                if(current_txn_entry){
+                if(current_txn_entry&&current_txn_entry->validating.load()){
                     group_log.append(current_txn_entry->get_wal());
                     current_txn_entry->clear_wal();
                     //Libin shifted their orders
@@ -293,7 +297,7 @@ namespace GTX{
         group_log.append(std::to_string(global_write_epoch));
         for(uint32_t i=0; i<current_writer_num;i++){
             auto current_txn_entry = commit_array[i].txn_ptr.load(std::memory_order_acquire);
-            if(current_txn_entry){
+            if(current_txn_entry&&current_txn_entry->validating.load()){
                 group_log.append(current_txn_entry->get_wal());
                 current_txn_entry->status.store(global_write_epoch);
                 commit_array[i].txn_ptr.store(nullptr);
@@ -400,6 +404,7 @@ namespace GTX{
 
         std::string log_suffix = "end";
         while(running.load(std::memory_order_acquire)){
+            determine_validation_group();//determine the validation block, and wait till they all validate
             size_t commit_count =0;
             offset = offset_distribution(gen);
             uint32_t current_offset = offset;
@@ -412,7 +417,8 @@ namespace GTX{
             bool first_txn_entry=true;
             do{
                 auto current_txn_entry = commit_array[current_offset].txn_ptr.load(std::memory_order_acquire);
-                if(current_txn_entry){
+                //only commit validated transactions
+                if(current_txn_entry&&current_txn_entry->validating.load()){
                     if(first_txn_entry){
                         std::string log_prefix = "start";
                         log_prefix.append(std::string_view((char*)(&global_write_epoch),sizeof (global_write_epoch)));
@@ -485,7 +491,7 @@ namespace GTX{
         //group_log.append(",");
         for(uint32_t i=0; i<current_writer_num;i++){
             auto current_txn_entry = commit_array[i].txn_ptr.load(std::memory_order_acquire);
-            if(current_txn_entry){
+            if(current_txn_entry&&current_txn_entry->validating.load()){
                 group_log.append(current_txn_entry->get_wal());
                 current_txn_entry->status.store(global_write_epoch);
                 commit_array[i].txn_ptr.store(nullptr);
@@ -511,6 +517,7 @@ namespace GTX{
         std::string group_log;
         group_log.reserve((1ul<<19)+(1ul<<11));
         while(running.load(std::memory_order_acquire)){
+            determine_validation_group();//determine the validation block, and wait till they all validate
             size_t commit_count =0;
             offset = offset_distribution(gen);
             uint32_t current_offset = offset;
@@ -522,7 +529,7 @@ namespace GTX{
             //let's just save that we don't do extra log, we do not increase read ts until logs are persisted.
             do{
                 auto current_txn_entry = commit_array[current_offset].txn_ptr.load(std::memory_order_acquire);
-                if(current_txn_entry){
+                if(current_txn_entry&&current_txn_entry->validating.load()){
                     local_group_log.append(current_txn_entry->get_wal());
                     current_txn_entry->clear_wal();
                     //Libin shifted their orders
@@ -570,7 +577,7 @@ namespace GTX{
         group_log.append(std::to_string(global_write_epoch));
         for(uint32_t i=0; i<current_writer_num;i++){
             auto current_txn_entry = commit_array[i].txn_ptr.load(std::memory_order_acquire);
-            if(current_txn_entry){
+            if(current_txn_entry&&current_txn_entry->validating.load()){
                 group_log.append(current_txn_entry->get_wal());
                 current_txn_entry->status.store(global_write_epoch);
                 commit_array[i].txn_ptr.store(nullptr);
@@ -584,6 +591,18 @@ namespace GTX{
             //std::filesystem::remove_all(entry.path());
         }
 
+    }
+    void CommitManager::determine_validation_group() {
+        //determine the group
+        for(uint64_t i=0; i<commit_array.size(); i++){
+            auto current_txn_entry = commit_array[i].txn_ptr.load(std::memory_order_acquire);
+            if(current_txn_entry!= nullptr){
+                current_txn_entry->validating.store(true);
+                validation_count.fetch_add(1);
+            }
+        }
+        //wait till the group finishes validation
+        while(validation_count.load()>0);
     }
 #endif
 }

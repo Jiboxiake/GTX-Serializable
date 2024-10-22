@@ -134,6 +134,25 @@ namespace GTX{
             }
 #endif
         }
+
+        inline void register_validation_group(uint8_t thread_id,entry_ptr txn_entry){
+            //validation_count.fetch_add(1);
+            auto current_txn_ptr = commit_array[thread_id].txn_ptr.load();
+            if(current_txn_ptr&&current_txn_ptr->status.load()==0)[[unlikely]]{
+                std::cout<<current_txn_ptr->txn_id<<" "<<current_txn_ptr->status<<std::endl;
+                throw std::runtime_error("how is this possible?");
+            }
+            commit_array[thread_id].txn_ptr.store(txn_entry,std::memory_order_release);
+            while(!txn_entry->validating.load());
+        }
+
+        inline void finish_validation(uint8_t thread_id, bool abort){
+            if(abort){
+                commit_array[thread_id].txn_ptr.store(nullptr,std::memory_order_release);
+            }
+            validation_count.fetch_sub(1);
+        }
+
         inline void resize_commit_array(uint64_t new_writer_size){
             current_writer_num = new_writer_size;
             commit_array.resize(current_writer_num);
@@ -141,6 +160,7 @@ namespace GTX{
                 commit_array[i].txn_ptr.store(nullptr,std::memory_order_release);
             }
         }
+        void determine_validation_group();
         void server_loop();
 
 #if ENSURE_DURABILITY
@@ -168,6 +188,7 @@ namespace GTX{
         std::atomic_uint64_t global_read_epoch = 0;
         uint64_t global_write_epoch = 0;
         uint32_t offset = 0 ;
+        std::atomic_int32_t validation_count =0;
     };
     using CommitManager = ConcurrentArrayCommitManager;
 }

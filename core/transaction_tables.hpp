@@ -116,9 +116,11 @@ namespace GTX {
 #if ENSURE_DURABILITY
         //std::vector<wal_entry>* wal;
         std::string wal;
-        char padding[8]{}
+        std::atomic_bool validating=false;
+        char padding[7]{}
 #else
-        char padding[16]{}
+        std::atomic_bool validating=false;
+        char padding[15]{}
 #endif
         ;
        //std::map<touched_block_entry,LockOffsetCache> touched_blocks;

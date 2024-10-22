@@ -21,7 +21,9 @@ namespace GTX{
     class RWTransaction;
     class SharedROTransaction;
 
-
+    struct validation_group{
+        
+    };
     class BwGraph {
 #if ENSURE_DURABILITY
         struct checkpointing{

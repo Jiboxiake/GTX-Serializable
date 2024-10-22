@@ -1864,6 +1864,7 @@ bool RWTransaction::simple_validation() {
         }
         //otherwise txn has to wait here, avoid deadlock
     }
+
     if(!to_abort){
         //validate read set
         //validate adjacency list
@@ -2075,6 +2076,11 @@ bool RWTransaction::eager_commit() {
 #if TRACK_EXECUTION_TIME
     auto start = std::chrono::high_resolution_clock::now();
 #endif
+    self_entry->op_count.store(op_count,std::memory_order_release);
+    //commit_manager.txn_commit(thread_id,self_entry,true);//now do it simple, just wait
+    //read set validation
+    batch_lazy_updates();
+    commit_manager.register_validation_group(thread_id,self_entry);//only the current validation group can move forward
 #if LAZY_LOCKING
     if(!validation()){
         eager_abort();
@@ -2083,6 +2089,7 @@ bool RWTransaction::eager_commit() {
     }
 #else
     if(!simple_validation())[[unlikely]]{
+        commit_manager.finish_validation(thread_id,true);
         eager_abort();
         txn_tables.abort_txn(self_entry,op_count);//no need to cache the touched blocks of aborted txns due to eager abort
         batch_lazy_updates();
@@ -2096,12 +2103,10 @@ bool RWTransaction::eager_commit() {
 #if TRACK_COMMIT_ABORT
         graph.register_abort();
 #endif
+        self_entry->validating.store(false);
         return false;
     }
 #endif //LAZY_LOCKING
-    self_entry->op_count.store(op_count,std::memory_order_release);
-    commit_manager.txn_commit(thread_id,self_entry,true);//now do it simple, just wait
-    batch_lazy_updates();
 //#if USING_COMMIT_WAIT_WORK
     /*  if(!self_entry->status.load())[[likely]]{
           eager_garbage_collection();
@@ -2109,6 +2114,7 @@ bool RWTransaction::eager_commit() {
       }*/
 //#else
 //even with wal, txn status won't get updated until persisted wal
+    commit_manager.finish_validation(thread_id,false);
     while(!self_entry->status.load(std::memory_order_acquire));//loop until committed, fixme: it seems to be a bottleneck, spent 6% of CPU
     //self_entry->status.wait(IN_PROGRESS,std::memory_order_acquire);
 //#endif //USING_COMMIt_WAIT_WORK
@@ -2130,6 +2136,7 @@ bool RWTransaction::eager_commit() {
 #if TRACK_COMMIT_ABORT
     graph.register_commit();
 #endif
+    self_entry->validating.store(false);
     return true;
 }
 
