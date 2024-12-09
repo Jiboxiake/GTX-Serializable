@@ -138,6 +138,7 @@ namespace GTX{
         inline void register_validation_group(uint8_t thread_id,entry_ptr txn_entry){
             //validation_count.fetch_add(1);
             auto current_txn_ptr = commit_array[thread_id].txn_ptr.load();
+            //todo: for debug
             if(current_txn_ptr&&current_txn_ptr->status.load()==0)[[unlikely]]{
                 std::cout<<current_txn_ptr->txn_id<<" "<<current_txn_ptr->status<<std::endl;
                 throw std::runtime_error("how is this possible?");

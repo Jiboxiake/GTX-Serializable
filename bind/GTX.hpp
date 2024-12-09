@@ -17,8 +17,8 @@ namespace  GTX{
     class BwGraph;
     class RWTransaction;
     class ROTransaction;
-    class SharedROTransaction;
     class DeleteTransaction;
+    class SharedROTransaction;
     class EdgeDeltaIterator;
     class BaseEdgeDelta;
     class SimpleEdgeDeltaIterator;
@@ -41,6 +41,7 @@ namespace gt {
     class RWTransaction;
     class ROTransaction;
     class SharedROTransaction;
+    class DeleteTransaction;
     class EdgeDeltaIterator;
     class SimpleEdgeDeltaIterator;
     //class SimpleObjectEdgeDeltaIterator;
@@ -178,11 +179,12 @@ namespace gt {
     private:
         const std::unique_ptr<GTX::RWTransaction> txn;
     };
+
     class DeleteTransaction{
     public:
         DeleteTransaction(std::unique_ptr<GTX::DeleteTransaction> _txn);
         ~DeleteTransaction();
-        void delete_vertex(vertex_t to_delete_vid);
+        void delete_vertex(vertex_t vid);
     private:
         const std::unique_ptr<GTX::DeleteTransaction> txn;
     };
@@ -301,4 +303,3 @@ namespace gt {
 
    };
 } // bg
-

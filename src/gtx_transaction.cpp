@@ -1864,7 +1864,7 @@ bool RWTransaction::simple_validation() {
         }
         //otherwise txn has to wait here, avoid deadlock
     }
-
+    //if we made to read validation phase, we have succesfully block all edge deltas block to be consolidated, we can safely do validation.
     if(!to_abort){
         //validate read set
         //validate adjacency list
@@ -1881,7 +1881,8 @@ bool RWTransaction::simple_validation() {
                 }
                 auto delta_offset = current_block->get_delta_offset_from_combined_offset(current_combined_offset);
                 auto edge_delta = current_block->get_edge_delta(delta_offset);
-                if(edge_delta->creation_ts.load(std::memory_order_acquire)>read_timestamp){
+                auto latest_ts = edge_delta->creation_ts.load(std::memory_order_acquire);
+                if(latest_ts>read_timestamp||latest_ts==0){
                     BlockStateVersionProtectionScheme::release_protection(thread_id,block_access_ts_table);
                     to_abort = true;
                     break;
@@ -1911,6 +1912,7 @@ bool RWTransaction::simple_validation() {
                     auto index_offset = delta_chain_index_entry.get_offset();
                     //if locked, then current group or future group is updating it. current group txn will be ordered after us in the serial order if there is no dependency cycle, otherwise it will fail validation
                     //because we finish delta chain installation first. The other will abort so we are safe. But need to check the head to see if others have updated and committed it already.
+                    //it is impossible for a locked delta chain pointing to an in-progress delta
                     if((index_offset>>31)>0)[[unlikely]]{
                         auto raw_offset = index_offset&UNLOCK_MASK;
                         if(raw_offset>0){

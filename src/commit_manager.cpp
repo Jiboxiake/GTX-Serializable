@@ -592,6 +592,7 @@ namespace GTX{
         }
 
     }
+#endif
     void CommitManager::determine_validation_group() {
         //determine the group
         for(uint64_t i=0; i<commit_array.size(); i++){
@@ -604,5 +605,4 @@ namespace GTX{
         //wait till the group finishes validation
         while(validation_count.load()>0);
     }
-#endif
 }
