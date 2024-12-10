@@ -482,7 +482,7 @@ void RWTransaction::put_edge(gt::vertex_t src, gt::label_t label, gt::vertex_t d
             throw RollbackExcept("write write conflict edge");
         }
     }
-#if DIRECTED_GRAPH
+#if UNDIRECTED_GRAPH
     while(true){
 #if TRACK_EXECUTION_TIME
         auto start = std::chrono::high_resolution_clock::now();
@@ -542,7 +542,7 @@ RWTransaction::checked_put_edge(gt::vertex_t src, gt::label_t label, gt::vertex_
 #endif
     }
 
-#if DIRECTED_GRAPH
+#if UNDIRECTED_GRAPH
     continue_executing= true;
     while(continue_executing){
 #if TRACK_EXECUTION_TIME
@@ -610,7 +610,7 @@ RWTransaction::checked_put_edge(gt::vertex_t src, gt::label_t label, gt::vertex_
 #endif
     }
 
-#if DIRECTED_GRAPH
+#if UNDIRECTED_GRAPH
     while(true){
 #if TRACK_EXECUTION_TIME
         auto start = std::chrono::high_resolution_clock::now();
@@ -699,7 +699,7 @@ bool RWTransaction::checked_delete_edge(gt::vertex_t src, gt::label_t label, gt:
         }
     }
 
-#if DIRECTED_GRAPH
+#if UNDIRECTED_GRAPH
     continue_executing = true;
     while(continue_executing){
 #if TRACK_EXECUTION_TIME
