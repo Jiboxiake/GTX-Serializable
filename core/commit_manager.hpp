@@ -137,21 +137,24 @@ namespace GTX{
 
         inline void register_validation_group(uint8_t thread_id,entry_ptr txn_entry){
             //validation_count.fetch_add(1);
-            auto current_txn_ptr = commit_array[thread_id].txn_ptr.load();
+            //auto current_txn_ptr = commit_array[thread_id].txn_ptr.load();
             //todo: for debug
+            /*
             if(current_txn_ptr&&current_txn_ptr->status.load()==0)[[unlikely]]{
                 std::cout<<current_txn_ptr->txn_id<<" "<<current_txn_ptr->status<<std::endl;
                 throw std::runtime_error("how is this possible?");
-            }
+            }*/
             commit_array[thread_id].txn_ptr.store(txn_entry,std::memory_order_release);
             while(!txn_entry->validating.load());
         }
 
-        inline void finish_validation(uint8_t thread_id, bool abort){
-            if(abort){
+        inline void finish_validation(uint8_t thread_id){
+            /*if(abort){
                 commit_array[thread_id].txn_ptr.store(nullptr,std::memory_order_release);
             }
-            validation_count.fetch_sub(1);
+            validation_count.fetch_sub(1);*/
+            commit_array[thread_id].txn_ptr.store(nullptr,std::memory_order_release);
+            validation_count.fetch_add(1,std::memory_order_acq_rel);
         }
 
         inline void resize_commit_array(uint64_t new_writer_size){
@@ -178,6 +181,7 @@ namespace GTX{
         void write_to_buffer(log_buffer& buffers, std::string& data,  std::ofstream& log_file);
 #endif
         inline uint64_t get_current_read_ts(){return global_read_epoch.load(std::memory_order_acquire);}
+        inline uint64_t get_current_write_ts(){return global_write_epoch.load(std::memory_order_acquire);}
         inline void shutdown_signal(){running.store(false,std::memory_order_release);}
         inline void restart(){running.store(true,std::memory_order_release);}
     private:
@@ -187,7 +191,8 @@ namespace GTX{
         //std::vector<padded_txn_entry_ptr> commit_array;
         std::atomic_bool running = true;
         std::atomic_uint64_t global_read_epoch = 0;
-        uint64_t global_write_epoch = 0;
+        std::atomic_uint64_t global_write_epoch = 0;
+        //uint64_t global_write_epoch = 0;
         uint32_t offset = 0 ;
         std::atomic_int32_t validation_count =0;
     };

@@ -80,10 +80,11 @@ namespace GTX{
     }
     //Concurrent Array Commit Manager Server Loop
     void ConcurrentArrayCommitManager::server_loop() {
-        std::uniform_int_distribution<> offset_distribution(0,current_writer_num-1);
+       /* std::uniform_int_distribution<> offset_distribution(0,current_writer_num-1);
         std::random_device rd; // obtain a random number from hardware
-        std::mt19937 gen(rd());
+        std::mt19937 gen(rd());*/
         while(running.load(std::memory_order_acquire)){
+            /*
             determine_validation_group();//determine the validation block, and wait till they all validate
             size_t commit_count =0;
             offset = offset_distribution(gen);
@@ -104,7 +105,20 @@ namespace GTX{
                 global_read_epoch.fetch_add(1,std::memory_order_acq_rel);
             }else{
                 global_write_epoch--;
+            }*/
+            int32_t commit_group_count = 0;
+            uint64_t commit_offset = 0;
+            while(commit_group_count<commit_group_threshold){
+                auto current_txn_entry = commit_array[commit_offset].txn_ptr.load(std::memory_order_acquire);
+                if(current_txn_entry!= nullptr){
+                    current_txn_entry->validating.store(true);
+                    commit_group_count++;
+                }
+                commit_offset++;
             }
+            while(validation_count.load(std::memory_order_acquire)!=commit_group_count);
+            global_read_epoch.fetch_add(1,std::memory_order_acq_rel);
+            global_write_epoch.fetch_add(1,std::memory_order_acq_rel);
         }
         //now the stop running signal is sent
         //todo: this also needs validation

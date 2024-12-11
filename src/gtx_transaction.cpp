@@ -2091,7 +2091,8 @@ bool RWTransaction::eager_commit() {
     }
 #else
     if(!simple_validation())[[unlikely]]{
-        commit_manager.finish_validation(thread_id,true);
+        //commit_manager.finish_validation(thread_id,true);
+        commit_manager.finish_validation(thread_id);
         eager_abort();
         txn_tables.abort_txn(self_entry,op_count);//no need to cache the touched blocks of aborted txns due to eager abort
         batch_lazy_updates();
@@ -2105,9 +2106,12 @@ bool RWTransaction::eager_commit() {
 #if TRACK_COMMIT_ABORT
         graph.register_abort();
 #endif
-        self_entry->validating.store(false);
+        //self_entry->validating.store(false);
         return false;
     }
+    //if passed validation
+    self_entry->status.store(commit_manager.get_current_write_ts(),std::memory_order_release);
+    commit_manager.finish_validation(thread_id);
 #endif //LAZY_LOCKING
 //#if USING_COMMIT_WAIT_WORK
     /*  if(!self_entry->status.load())[[likely]]{
@@ -2116,8 +2120,8 @@ bool RWTransaction::eager_commit() {
       }*/
 //#else
 //even with wal, txn status won't get updated until persisted wal
-    commit_manager.finish_validation(thread_id,false);
-    while(!self_entry->status.load(std::memory_order_acquire));//loop until committed, fixme: it seems to be a bottleneck, spent 6% of CPU
+    //commit_manager.finish_validation(thread_id,false);
+    //while(!self_entry->status.load(std::memory_order_acquire));//loop until committed, fixme: it seems to be a bottleneck, spent 6% of CPU
     //self_entry->status.wait(IN_PROGRESS,std::memory_order_acquire);
 //#endif //USING_COMMIt_WAIT_WORK
     //while()
@@ -2138,7 +2142,7 @@ bool RWTransaction::eager_commit() {
 #if TRACK_COMMIT_ABORT
     graph.register_commit();
 #endif
-    self_entry->validating.store(false);
+    //self_entry->validating.store(false);
     return true;
 }
 
