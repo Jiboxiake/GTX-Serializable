@@ -58,5 +58,5 @@ constexpr uint8_t index_lookup_order_threshold = 12;
 #define ENSURE_DURABILITY false
 #define UNDIRECTED_GRAPH true
 constexpr uint32_t prefetch_offset = 512;
-constexpr int32_t commit_group_threshold = 128;
+constexpr int32_t commit_group_threshold = 256;
 //#endif //BWGRAPH_V2_GRAPH_GLOBAL_HPP

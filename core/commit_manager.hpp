@@ -190,8 +190,8 @@ namespace GTX{
         uint64_t current_writer_num = worker_thread_num;
         //std::vector<padded_txn_entry_ptr> commit_array;
         std::atomic_bool running = true;
-        std::atomic_uint64_t global_read_epoch = 0;
-        std::atomic_uint64_t global_write_epoch = 0;
+        std::atomic_uint64_t global_read_epoch = 1;
+        std::atomic_uint64_t global_write_epoch = 1;
         //uint64_t global_write_epoch = 0;
         uint32_t offset = 0 ;
         std::atomic_int32_t validation_count =0;

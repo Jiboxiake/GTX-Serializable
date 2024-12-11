@@ -495,6 +495,7 @@ namespace GTX{
             thread_id = get_threadID(local_txn_id);
             current_delta_offset=0;
             current_data_offset=0;
+            self_entry->validating.store(false);
 #if TRACK_EXECUTION_TIME
             txn_start_time = std::chrono::high_resolution_clock::now();
 #endif

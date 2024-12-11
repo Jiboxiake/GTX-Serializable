@@ -108,18 +108,20 @@ namespace GTX{
             }*/
             int32_t commit_group_count = 0;
             uint64_t commit_offset = 0;
-            while(commit_group_count<commit_group_threshold){
+            while(commit_group_count<commit_group_threshold&&running.load(std::memory_order_acquire)){
                 auto current_txn_entry = commit_array[commit_offset].txn_ptr.load(std::memory_order_acquire);
-                if(current_txn_entry!= nullptr){
-                    current_txn_entry->validating.store(true);
+                if(current_txn_entry!= nullptr &&  !current_txn_entry->validating.load(std::memory_order_acquire)){
+                    current_txn_entry->validating.store(true,std::memory_order_release);
                     commit_group_count++;
                 }
-                commit_offset++;
+                commit_offset = (commit_offset+1)%current_writer_num;
             }
             while(validation_count.load(std::memory_order_acquire)!=commit_group_count);
             global_read_epoch.fetch_add(1,std::memory_order_acq_rel);
             global_write_epoch.fetch_add(1,std::memory_order_acq_rel);
+            validation_count.store(0,std::memory_order_release);
         }
+        //return;
         //now the stop running signal is sent
         //todo: this also needs validation
         global_write_epoch++;
